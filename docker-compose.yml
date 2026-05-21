@@ -1,0 +1,76 @@
+version: "3.9"
+
+x-app-base: &app-base
+  build: .
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+  networks:
+    - delivery-net
+
+services:
+  web:
+    <<: *app-base
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2
+    ports:
+      - "8000:8000"
+
+  worker-payments:
+    <<: *app-base
+    command: celery -A config worker -Q payments -c 2 --loglevel=info -n payments@%h
+
+  worker-notifications:
+    <<: *app-base
+    command: celery -A config worker -Q notifications -c 2 --loglevel=info -n notifications@%h
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: delivery
+      POSTGRES_USER: delivery
+      POSTGRES_PASSWORD: delivery
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - delivery-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U delivery"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - delivery-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "15672:15672"
+    networks:
+      - delivery-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+volumes:
+  postgres-data:
+
+networks:
+  delivery-net:
