@@ -49,14 +49,31 @@ CELERY_RESULT_BACKEND = env("REDIS_URL")
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_ACKS_LATE = True          # ack only after task completes
+CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-CELERY_QUEUES_DURABLE = True          # custom flag read in celery.py
 CELERY_TASK_ROUTES = {
-    "apps.payments.tasks.*": {"queue": "payments"},
+    "apps.payments.tasks.*":      {"queue": "payments"},
     "apps.notifications.tasks.*": {"queue": "notifications"},
+    "apps.common.tasks.*":        {"queue": "system"},
+    "apps.orders.tasks.*":        {"queue": "system"},
+}
+
+# Celery Beat — расписание фоновых задач
+CELERY_BEAT_SCHEDULE = {
+    # Transactional Outbox: перекладываем сообщения из БД в RabbitMQ каждые 5 секунд
+    "flush-outbox": {
+        "task": "apps.common.tasks.flush_outbox",
+        "schedule": 5.0,
+        "options": {"queue": "system"},
+    },
+    # Дедлайны саг: отменяем просроченные заказы каждые 5 минут
+    "cleanup-expired-sagas": {
+        "task": "apps.orders.tasks.cleanup_expired_sagas",
+        "schedule": 300.0,
+        "options": {"queue": "system"},
+    },
 }
 
 # Chaos engineering

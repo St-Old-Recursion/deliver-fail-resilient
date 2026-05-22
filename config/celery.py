@@ -11,8 +11,10 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 durable_exchange = Exchange("delivery", type="direct", durable=True)
 
 app.conf.task_queues = [
-    Queue("payments", durable_exchange, routing_key="payments", durable=True),
-    Queue("notifications", durable_exchange, routing_key="notifications", durable=True),
+    Queue("payments",      durable_exchange, routing_key="payments",      durable=True),
+    Queue("notifications", durable_exchange, routing_key="notifications",  durable=True),
+    # system — внутренние задачи: flush_outbox, cleanup_expired_sagas
+    Queue("system",        durable_exchange, routing_key="system",         durable=True),
 ]
 app.conf.task_default_queue = "payments"
 app.conf.task_default_exchange = "delivery"

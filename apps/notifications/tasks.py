@@ -1,14 +1,31 @@
 from __future__ import annotations
 
 import logging
-from celery import shared_task
+from celery import Task, shared_task
 from apps.common.exceptions import TemporaryFailure
 
 logger = logging.getLogger(__name__)
 
 
+class _DLQTask(Task):
+    """Базовый класс с DLQ: при исчерпании retry → запись в FailedTask."""
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        from apps.common.models import FailedTask
+        FailedTask.objects.create(
+            task_name=self.name,
+            task_id=str(task_id),
+            payload=kwargs,
+            exception=str(exc),
+        )
+        logger.error(
+            "%s окончательно упала (все попытки исчерпаны): %s", self.name, exc
+        )
+
+
 @shared_task(
     bind=True,
+    base=_DLQTask,
     queue="notifications",
     max_retries=5,
     autoretry_for=(TemporaryFailure,),

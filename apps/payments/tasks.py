@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from celery import shared_task
+from celery import Task, shared_task
 
 from apps.common.exceptions import TemporaryFailure
 
@@ -11,8 +11,29 @@ logger = logging.getLogger(__name__)
 _COUNTDOWN = [10, 20, 40, 80, 160]
 
 
+class _DLQTask(Task):
+    """
+    Базовый класс задачи с Dead Letter Queue.
+    on_failure вызывается после исчерпания всех попыток retry —
+    записывает задачу в таблицу FailedTask для последующего ручного разбора.
+    """
+
+    def on_failure(self, exc, task_id, args, kwargs, einfo):
+        from apps.common.models import FailedTask
+        FailedTask.objects.create(
+            task_name=self.name,
+            task_id=str(task_id),
+            payload=kwargs,
+            exception=str(exc),
+        )
+        logger.error(
+            "%s окончательно упала (все попытки исчерпаны): %s", self.name, exc
+        )
+
+
 @shared_task(
     bind=True,
+    base=_DLQTask,
     queue="payments",
     max_retries=5,
     autoretry_for=(TemporaryFailure,),

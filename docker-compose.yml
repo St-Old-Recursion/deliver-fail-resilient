@@ -28,6 +28,23 @@ services:
     <<: *app-base
     command: celery -A config worker -Q notifications -c 2 --loglevel=info -n notifications@%h
 
+  # Обрабатывает системные задачи: flush_outbox и cleanup_expired_sagas
+  worker-system:
+    <<: *app-base
+    command: celery -A config worker -Q system -c 1 --loglevel=info -n system@%h
+
+  # Celery Beat — планировщик периодических задач (запускать только один экземпляр!)
+  beat:
+    <<: *app-base
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   postgres:
     image: postgres:15-alpine
     environment:
