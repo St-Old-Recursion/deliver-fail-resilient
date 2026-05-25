@@ -1,11 +1,29 @@
-import django
-from django.conf import settings
+import pytest
 
 
-def pytest_configure():
-    """Override DB to SQLite for unit tests that don't need Postgres."""
-    if not settings.configured:
-        return
-    # Allow override via DATABASE_URL env; fallback to sqlite for fast local runs
-    if "sqlite" not in settings.DATABASES["default"]["ENGINE"]:
-        pass  # keep postgres when DATABASE_URL points to real db
+@pytest.fixture(autouse=True)
+def reset_cache():
+    """
+    Очищаем Django-кэш перед каждым тестом.
+    Нужно для изоляции тестов Redis Circuit Breaker:
+    состояние выключателя хранится в кэше и не должно переходить между тестами.
+    """
+    from django.core.cache import cache
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_cb_registry():
+    """
+    Очищаем реестр Redis Circuit Breaker между тестами.
+    Без этого экземпляры из одного теста будут доступны в другом.
+    """
+    from apps.common.circuit_breaker_redis import _registry as redis_registry
+    from apps.common.circuit_breaker import _registry as inmem_registry
+    redis_registry.clear()
+    inmem_registry.clear()
+    yield
+    redis_registry.clear()
+    inmem_registry.clear()
