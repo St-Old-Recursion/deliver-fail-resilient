@@ -60,15 +60,12 @@ CELERY_TASK_ROUTES = {
     "apps.orders.tasks.*":        {"queue": "system"},
 }
 
-# Celery Beat — расписание фоновых задач
 CELERY_BEAT_SCHEDULE = {
-    # Transactional Outbox: перекладываем сообщения из БД в RabbitMQ каждые 5 секунд
     "flush-outbox": {
         "task": "apps.common.tasks.flush_outbox",
         "schedule": 5.0,
         "options": {"queue": "system"},
     },
-    # Дедлайны саг: отменяем просроченные заказы каждые 5 минут
     "cleanup-expired-sagas": {
         "task": "apps.orders.tasks.cleanup_expired_sagas",
         "schedule": 300.0,

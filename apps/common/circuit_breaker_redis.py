@@ -1,10 +1,6 @@
 """
 Redis-backed Circuit Breaker — решает проблему split-brain при нескольких воркерах.
 
-В отличие от in-memory реализации, все воркеры видят одно общее состояние через Redis.
-Алгоритм тот же: CLOSED → OPEN (N ошибок за окно) → HALF_OPEN (через timeout) → CLOSED.
-
-Используется в gateway.py вместо in-memory выключателя.
 """
 from __future__ import annotations
 
@@ -37,16 +33,10 @@ class RedisCircuitBreaker:
         self.window_seconds = window_seconds
         self.reset_timeout = reset_timeout
 
-    # ------------------------------------------------------------------ #
-    # Ключи в Redis
-    # ------------------------------------------------------------------ #
 
     def _k(self, suffix: str) -> str:
         return f"cb:{self.name}:{suffix}"
 
-    # ------------------------------------------------------------------ #
-    # Публичный интерфейс
-    # ------------------------------------------------------------------ #
 
     def call(self, func: Callable[[], T]) -> T:
         state = cache.get(self._k("state"), _STATE_CLOSED)
@@ -79,10 +69,6 @@ class RedisCircuitBreaker:
             "reset_timeout": self.reset_timeout,
             "reopens_at": reopens_at,
         }
-
-    # ------------------------------------------------------------------ #
-    # Внутренние методы
-    # ------------------------------------------------------------------ #
 
     def _record_failure(self) -> None:
         # Инкрементируем счётчик ошибок с TTL = window_seconds

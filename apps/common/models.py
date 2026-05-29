@@ -24,9 +24,8 @@ class OutboxMessage(models.Model):
 
 class FailedTask(models.Model):
     """
-    Dead Letter Queue в виде таблицы БД.
+    Паттерн Dead Letter Queue. 
     Задача попадает сюда после исчерпания всех попыток retry.
-    Позволяет вручную разобрать потерянные задачи и при необходимости переиграть их.
     """
     task_name = models.CharField(max_length=255)
     task_id = models.CharField(max_length=255)

@@ -40,10 +40,6 @@ class CircuitBreaker:
     _opened_at: float | None = field(default=None, init=False, repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
-    # ------------------------------------------------------------------ #
-    # Публичный интерфейс
-    # ------------------------------------------------------------------ #
-
     def call(self, func: Callable[[], T]) -> T:
         with self._lock:
             self._maybe_transition()
@@ -83,9 +79,6 @@ class CircuitBreaker:
                 ),
             }
 
-    # ------------------------------------------------------------------ #
-    # Вспомогательные методы (вызывать только под self._lock)
-    # ------------------------------------------------------------------ #
 
     def _maybe_transition(self) -> None:
         # Проверяем, не истёк ли таймаут ожидания — если да, переходим в HALF_OPEN

@@ -15,9 +15,6 @@ def flush_outbox(self) -> dict:
     """
     Transactional Outbox: читает необработанные сообщения из таблицы outbox_messages
     и отправляет соответствующие Celery-задачи в RabbitMQ.
-
-    select_for_update(skip_locked=True) гарантирует, что при нескольких воркерах
-    каждое сообщение обработается ровно один раз.
     """
     from celery import current_app
     from .models import OutboxMessage

@@ -1,10 +1,6 @@
 """
 Заглушка внешнего платёжного шлюза.
 
-Исправление идемпотентности: принимает idempotency_key (= saga_id).
-UUID5 детерминирован — один и тот же ключ всегда даёт один и тот же external_payment_id,
-что имитирует поведение реальных шлюзов (Stripe, YooKassa и др.).
-Все вызовы защищены Redis-based Circuit Breaker.
 """
 import uuid
 from apps.common.chaos import maybe_fail
@@ -25,8 +21,6 @@ _breaker = get_redis_breaker(
 def charge(order_id: int, amount: float, idempotency_key: str = "") -> str:
     """
     Обращается к внешнему шлюзу; возвращает external_payment_id при успехе.
-    idempotency_key гарантирует, что повторный вызов с тем же ключом вернёт
-    тот же ID, а не создаст второе списание.
     """
 
     def _do_charge() -> str:
@@ -45,5 +39,5 @@ def charge(order_id: int, amount: float, idempotency_key: str = "") -> str:
 
 
 def refund(external_payment_id: str) -> None:
-    """Имитация возврата платежа — компенсирующая транзакция, всегда успешна."""
+    """Имитация возврата платежа — всегда успешна."""
     pass

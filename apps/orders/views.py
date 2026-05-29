@@ -56,7 +56,7 @@ def order_status(request, order_id: int):
 @csrf_exempt
 @require_POST
 def cancel_order(request, order_id: int):
-    # Отменяем только PENDING — PROCESSING уже захвачен сагой, отмена невозможна
+    # Отменяем только PENDING, PROCESSING уже захвачен сагой, отмена невозможна
     updated = Order.objects.filter(
         pk=order_id, status=Order.Status.PENDING
     ).update(status=Order.Status.CANCELLED)
@@ -64,7 +64,6 @@ def cancel_order(request, order_id: int):
     if updated:
         return JsonResponse({"id": order_id, "status": Order.Status.CANCELLED})
 
-    # Разбираемся почему не обновилось
     try:
         order = Order.objects.get(pk=order_id)
     except Order.DoesNotExist:

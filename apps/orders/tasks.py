@@ -12,9 +12,6 @@ logger = logging.getLogger(__name__)
 @shared_task(queue="system")
 def cleanup_expired_sagas() -> dict:
     """
-    Периодически находит заказы, превысившие дедлайн саги, и компенсирует их.
-    Для заказов в статусе PAID дополнительно выполняется возврат платежа.
-
     Запускается Celery Beat каждые 5 минут.
     """
     from django.utils import timezone

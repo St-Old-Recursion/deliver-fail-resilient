@@ -12,10 +12,8 @@ _COUNTDOWN = [10, 20, 40, 80, 160]
 
 
 class _DLQTask(Task):
-    """
-    Базовый класс задачи с Dead Letter Queue.
-    on_failure вызывается после исчерпания всех попыток retry —
-    записывает задачу в таблицу FailedTask для последующего ручного разбора.
+    """ 
+    Dead Letter Queue.
     """
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
@@ -44,9 +42,7 @@ class _DLQTask(Task):
 )
 def process_payment_task(self, saga_id: str, order_id: int, amount: float) -> dict:
     """
-    Celery-задача обработки платежа.
     При TemporaryFailure выполняются повторные попытки с экспоненциальной задержкой (до 5 раз).
-    При успехе продвигает конечный автомат саги на следующий шаг.
     """
     from apps.orders.saga import OrderSagaOrchestrator
 
