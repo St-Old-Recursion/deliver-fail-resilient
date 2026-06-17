@@ -97,7 +97,9 @@ class TestSagaPaymentFailure:
         saga_id = orchestrator.saga_id
         assert SagaLog.objects.filter(saga_id=saga_id, status="COMPENSATED").exists()
 
-        create_log = SagaLog.objects.filter(saga_id=saga_id, step="create_order").first()
+        create_log = SagaLog.objects.filter(
+            saga_id=saga_id, step="create_order", status="COMPENSATED"
+        ).first()
         order = Order.objects.get(pk=create_log.payload["order_id"])
         assert order.status == Order.Status.CANCELLED
 
@@ -118,7 +120,7 @@ class TestSagaCircuitBreakerOpen:
                 orchestrator.execute("carol@example.com", "Sushi Stop", Decimal("45.00"))
 
         create_log = SagaLog.objects.filter(
-            saga_id=orchestrator.saga_id, step="create_order"
+            saga_id=orchestrator.saga_id, step="create_order", status="COMPENSATED"
         ).first()
         order = Order.objects.get(pk=create_log.payload["order_id"])
         assert order.status == Order.Status.CANCELLED

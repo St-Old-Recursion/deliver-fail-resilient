@@ -24,15 +24,15 @@ LOCMEM_CACHE = {
 @pytest.fixture(autouse=True)
 def clear_cache_and_registry():
     """Очищаем кэш и реестр выключателей перед каждым тестом."""
-    from django.core.cache import cache
-    cache.clear()
-    _registry.clear()
-    yield
-    cache.clear()
-    _registry.clear()
+    with override_settings(CACHES=LOCMEM_CACHE):
+        from django.core.cache import cache
+        cache.clear()
+        _registry.clear()
+        yield
+        cache.clear()
+        _registry.clear()
 
 
-@override_settings(CACHES=LOCMEM_CACHE)
 class TestRedisCBClosed:
     def test_passes_through_on_success(self):
         # В нормальном состоянии (CLOSED) вызов должен вернуть результат функции
@@ -58,7 +58,6 @@ class TestRedisCBClosed:
         assert cb.status["recent_failures"] == 0
 
 
-@override_settings(CACHES=LOCMEM_CACHE)
 class TestRedisCBOpens:
     def test_opens_after_threshold_failures(self):
         # После N сбоев подряд выключатель должен перейти в OPEN
@@ -97,7 +96,6 @@ class TestRedisCBOpens:
         assert status["reopens_at"] is not None
 
 
-@override_settings(CACHES=LOCMEM_CACHE)
 class TestRedisCBRecovery:
     def test_probe_call_allowed_after_state_expires(self):
         """
@@ -140,7 +138,6 @@ class TestRedisCBRecovery:
         assert cb.status["state"] == "OPEN"
 
 
-@override_settings(CACHES=LOCMEM_CACHE)
 class TestRedisCBDistributed:
     def test_two_instances_share_state(self):
         """
